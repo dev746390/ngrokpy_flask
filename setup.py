@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="flask-ngrokpy",
-    version="1.0.0",
+    version="1.0.1",
     author="Jak Bin",
     description="A simple way to demo Flask apps from your machine.",
     long_description=long_description,
@@ -18,5 +18,5 @@ setuptools.setup(
     ],
     keywords='flask,flask-ngrok,flask-ngrokpy,port-forwarding',
     install_requires=['Flask>=0.14.0', 'requests'],
-    py_modules=['flask_ngrok_st']
+    py_modules=['flask_ngrokpy']
 )
