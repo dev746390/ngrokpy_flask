@@ -1,4 +1,3 @@
-import atexit
 import json
 import os
 import platform
@@ -6,9 +5,10 @@ import shutil
 import time
 import zipfile
 from pathlib import Path
+import requests
 from threading import Timer
 
-import requests
+home = Path.home()
 
 # check os
 def _get_command():
@@ -23,31 +23,42 @@ def _get_command():
         raise Exception("{system} is not supported".format(system=system))
     return command
 
+def set_auth_token():
+    token = input("Please enter your ngrok auth_token :")
+    os.popen(f"ngrok/./ngrok authtoken {token}")
+    print(f"Authtoken saved to configuration file: {home}/.ngrok2/ngrok.yml")
+
 # run flask on port 500 and return ngrok url
 def _run_ngrok(port,app):
     command = _get_command()
     ngrok_path = str(Path(app.root_path, "ngrok"))
+    if os.path.isfile(os.path.join(ngrok_path, "ngrok")):
+        print(" # ngrok found")
     _download_ngrok(ngrok_path,app)
     executable = str(Path(ngrok_path, command))
     os.chmod(executable, 0o777)
+    if os.path.isfile(f"{home}/.ngrok2/ngrok.yml"):
+        print(" # ngrok config file exits")
+    else:
+        set_auth_token()
     ngrok = os.popen(f"ngrok/./ngrok http {port}")
-    #atexit.register(ngrok.terminate)
-    localhost_url = "http://localhost:4040/api/tunnels"  # Url with tunnel details
-    time.sleep(2)
+    time.sleep(8)
+    localhost_url = "http://localhost:4041/api/tunnels"  # Url with tunnel details
     tunnel_url = requests.get(localhost_url).text  # Get the tunnel information
     j = json.loads(tunnel_url)
 
     try:
         tunnel_url = j['tunnels'][0]['public_url']  # Do the parsing of the get
-    except :
-        print(" * may be internet not available or try again")  # Do the parsing of the get
-    tunnel_url = tunnel_url.replace("https", "http")
+    except IndexError:
+        return " # may be internet not available or try again"  # Do the parsing of the get
+    tunnel_url = tunnel_url.replace("https", "https")
     return tunnel_url
 
 # if ngrok not available in flask root path  
 def _download_ngrok(ngrok_path,app):
     if Path(ngrok_path).exists():
         return
+    print(" # Downloading ngrok")
     system = platform.system()
     if system == "Darwin":
         url = "https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-darwin-amd64.zip"
@@ -73,8 +84,8 @@ def _download_file(url,app):
 
 def start_ngrok(port,app):
     ngrok_address = _run_ngrok(port,app)
-    print(f" * Running on {ngrok_address}")
-    print(f" * Traffic stats available on http://127.0.0.1:4040")
+    print(f" # Running on {ngrok_address}")
+    print(f" # Traffic stats available on http://127.0.0.1:4041")
 
 
 def run_with_ngrok(app):
